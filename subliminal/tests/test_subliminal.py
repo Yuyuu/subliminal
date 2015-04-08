@@ -122,9 +122,12 @@ class ApiTestCase(TestCase):
         languages = {Language('eng'), Language('fra')}
         links = get_best_subtitles_links(videos, languages)
         for video in videos:
-            self.assertIn(video, links)
-            self.assertEqual(len(links[video]), 2)
-            self.assertIsNotNone(links[video][1])
+            self.assertIn(video.name, links)
+            self.assertEqual(len(links[video.name]), 2)
+            for sub in links[video.name]:
+                self.assertIsNotNone(sub['link'])
+                self.assertIsNotNone(sub['score'])
+                self.assertIsNotNone(sub['language'])
 
 
 class VideoTestCase(TestCase):

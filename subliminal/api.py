@@ -186,7 +186,11 @@ def get_best_subtitles_links(videos, languages, providers=None, provider_configs
 
                 if subtitle.page_link is not None:
                     done_languages.add(subtitle.language)
-                    best_subtitles_links[video].append((subtitle.page_link, score))
+                    best_subtitles_links[video.name].append({
+                        'language': str(subtitle.language),
+                        'link': subtitle.page_link,
+                        'score': score
+                    })
                 if single or done_languages == languages:
                     logger.debug('All languages downloaded')
                     break
