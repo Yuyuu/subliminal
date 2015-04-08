@@ -138,3 +138,56 @@ def save_subtitles(subtitles, single=False, directory=None, encoding=None):
             saved_languages.add(video_subtitle.language)
             if single:
                 break
+
+
+def get_best_subtitles_links(videos, languages, providers=None, provider_configs=None, min_score=0,
+                             hearing_impaired=False, single=False):
+    """Get the links of the best subtitles for `videos` with the given `languages` using the specified `providers`
+
+    :param videos: videos to get subtitles links
+    :type videos: set of :class:`~subliminal.video.Video`
+    :param languages: languages of subtitles to get links
+    :type languages: set of :class:`babelfish.Language`
+    :param providers: providers to use for the search, if not all
+    :type providers: list of string or None
+    :param provider_configs: configuration for providers
+    :type provider_configs: dict of provider name => provider constructor kwargs or None
+    :param int min_score: minimum score for subtitles to get links
+    :param bool hearing_impaired: get links for hearing impaired subtitles
+    :param bool single: do not get for videos with an undetermined subtitle language detected
+
+    """
+    best_subtitles_links = collections.defaultdict(list)
+    with ProviderPool(providers, provider_configs) as pp:
+        for video in videos:
+            # filter
+            if single and babelfish.Language('und') in video.subtitle_languages:
+                logger.debug('Skipping video %r: undetermined language found')
+                continue
+
+            # list
+            logger.info('Listing subtitles for %r', video)
+            video_subtitles = pp.list_subtitles(video, languages)
+            logger.info('Found %d subtitles total', len(video_subtitles))
+
+            # get links
+            done_languages = set()
+            for subtitle, score in sorted([(s, s.compute_score(video)) for s in video_subtitles],
+                                          key=operator.itemgetter(1), reverse=True):
+                if score < min_score:
+                    logger.info('No subtitle with score >= %d', min_score)
+                    break
+                if subtitle.hearing_impaired != hearing_impaired:
+                    logger.debug('Skipping subtitle: hearing impaired != %r', hearing_impaired)
+                    continue
+                if subtitle.language in done_languages:
+                    logger.debug('Skipping subtitle: %r already downloaded', subtitle.language)
+                    continue
+
+                if subtitle.page_link is not None:
+                    done_languages.add(subtitle.language)
+                    best_subtitles_links[video].append((subtitle.page_link, score))
+                if single or done_languages == languages:
+                    logger.debug('All languages downloaded')
+                    break
+    return best_subtitles_links

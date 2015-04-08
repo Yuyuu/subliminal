@@ -5,7 +5,8 @@ import os
 import shutil
 from unittest import TestCase, TestSuite, TestLoader, TextTestRunner
 from babelfish import Language
-from subliminal import list_subtitles, download_subtitles, save_subtitles, download_best_subtitles, scan_video
+from subliminal import list_subtitles, download_subtitles, save_subtitles, download_best_subtitles, scan_video,\
+    get_best_subtitles_links
 from subliminal.tests.common import MOVIES, EPISODES
 
 
@@ -113,6 +114,17 @@ class ApiTestCase(TestCase):
         languages = {Language('eng')}
         subtitles = download_best_subtitles(videos, languages, hearing_impaired=True)
         self.assertTrue(subtitles[videos[0]][0].hearing_impaired)
+
+    def test_get_best_subtitles_links(self):
+        videos = [EPISODES[0], EPISODES[1]]
+        for video in videos:
+            video.name = os.path.join(TEST_DIR, os.path.split(video.name)[1])
+        languages = {Language('eng'), Language('fra')}
+        links = get_best_subtitles_links(videos, languages)
+        for video in videos:
+            self.assertIn(video, links)
+            self.assertEqual(len(links[video]), 2)
+            self.assertIsNotNone(links[video][1])
 
 
 class VideoTestCase(TestCase):
